@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import re
+import csv
 import json
 import random
 import urllib3
@@ -82,6 +83,18 @@ def writejson(json_dict, filename):
         rj.write(json_obj)
         rj.write('\n')
 
+def write_csv(dict_info, filename):
+    '''
+    将所有数据写入到csv文档中
+    '''
+    list_info = ['lp_link', 'lp_name', 'lp_addr', 'lp_salestatus', 'lp_wuyetp',
+                 'lp_tag', 'lp_price', 'lp_phone', 'lp_dp', 'lp_huxing', 'lp_area']
+    with open(filename, 'a+', encoding='utf_8_sig', newline='') as csv_info:
+        csv_w = csv.writer(csv_info)
+        info = [str(dict_info.get(item)) for item in list_info]
+        print(info)
+        csv_w.writerow(info)
+
 
 
 def loupan_summary_spider(db_lp, url_page='https://cq.fang.anjuke.com/loupan/yubei', isfirstpage=False):
@@ -138,11 +151,12 @@ def loupan_summary_spider(db_lp, url_page='https://cq.fang.anjuke.com/loupan/yub
         # 10.户型 和 建筑面积
         pattern_hx = '<span>(.{2})(?=</span>)'
         pattern_jm = '[\w\.-]+(?=㎡</span>)'
-        info_dict.update({'lp_huxing': getinfofromsoup(lp, 'a', 'huxing', pattern=pattern_hx, index=1)})
+        info_dict.update({'lp_huxing': getinfofromsoup(lp, 'a', 'huxing', pattern=pattern_hx)})
         info_dict.update({'lp_area': getinfofromsoup(lp, 'a', 'huxing', pattern=pattern_jm, index=1)})
 
         # print(info_dict)
         writejson(info_dict, 'result.json')
+        write_csv(info_dict, 'result.csv')
     
     # isfirstpage如果为True则抓取其它几个页面的链接放入到url_list中
     if isfirstpage:
