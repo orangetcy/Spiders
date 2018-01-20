@@ -4,9 +4,9 @@ import re
 import csv
 import json
 import random
-import urllib3
-import sqlite3
 import threading
+import urllib3
+
 
 from bs4 import BeautifulSoup
 
