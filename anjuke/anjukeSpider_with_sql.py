@@ -44,8 +44,8 @@ class MySQL_wraper(object):
         self.lock = threading.RLock()    # Lock
         self.basename = database    # database name
         self.host = '127.0.0.1'
-        self.user = 'orange'
-        self.password = 'qwer1234'
+        self.user = 'database_user'
+        self.password = 'password'
 
         if command != '':
             conn = self.get_conn()
