@@ -33,7 +33,7 @@ NUM_RETRIES = 2
 
 
 class downloader(object):
-    """
+    """将download包装成类，方便设置属性
     """
     def __init__(self, delay=DEFAULT_DELAY, num_retries=NUM_RETRIES, timeout=DEFAULT_TIMEOUT, cache={}, headers={}):
         socket.setdefaulttimeout(DEFAULT_TIMEOUT)
@@ -43,7 +43,7 @@ class downloader(object):
         self.headers = headers
         
 
-    def __call__(self, url):
+    def __call__(self, url, user_agent=USER_AGENT[0]):
         result = {}
         if self.cache:
             result = self.cache.get(url, {})
@@ -53,9 +53,9 @@ class downloader(object):
         if not result:
             # result 没有从cache中加载成功， 仍需要下载
             self.throttles.wait(url)
-            self.headers.update(USER_AGENT[random.randrange(0, len(USER_AGENT))]) 
+            self.headers.update(user_agent) 
             result = self.download(url, num_retries=self.num_retries, headers=self.headers)
-            self.cache.update({url:result})
+            self.cache[url] = result
 
         return result.get('html', '')
 
@@ -86,7 +86,7 @@ class throttle(object):
         pass
 
     def wait(self, url):
-        """
+        """检查url是否是同一网站内，如果是则应用延迟
         """
         domain = parse.urlparse(url).netloc
         last_accessed = self.domains.get(domain)
