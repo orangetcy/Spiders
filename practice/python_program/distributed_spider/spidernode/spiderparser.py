@@ -7,7 +7,7 @@ class HTMLParser(object):
 
     def parser(self, page_url, html):
         if page_url is None or html is None:
-            return
+            return None, None
         
         soup = BeautifulSoup(html, 'lxml' )
         new_urls, new_data = self._get_new_info(page_url, soup)

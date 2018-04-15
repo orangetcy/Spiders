@@ -30,6 +30,8 @@ class SpiderWorker(object):
         print('Spiderworker initial finished.')
 
     def crawl(self):
+        error_times = 0
+        ERROR_LIM = 3
         while True:
             print(self.task, self.task.qsize())
             try:
@@ -46,6 +48,14 @@ class SpiderWorker(object):
                     html = self.download.download(url)
                     new_urls, new_data = self.parse.parser(url, html)
                     print('crawl: ', new_urls, new_data)
+                    if new_urls is None and new_data is None:
+                        print('parse error')
+                        if error_times >= ERROR_LIM:
+                            print('stop work by error!')
+                            # 通知其他节点停止工作
+                            self.result.put({'new_urls':'end', 'data':'end'})
+                            return
+                        error_times += 1
                     self.result.put({
                         'new_urls': new_urls,
                         'data': new_data,
@@ -53,10 +63,10 @@ class SpiderWorker(object):
             except EOFError as e:
                 print('连接节点获取数据失败！')
                 return
-            '''
             except Exception as e:
                 print(e)
-                print('爬取失败！')'''
+                print('爬取失败！')
+                return
             print('sleep... task size:',self.task.qsize())
             time.sleep(10)
 

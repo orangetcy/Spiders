@@ -1,6 +1,8 @@
 import time
 import requests
 from random import randrange
+from urllib.parse import *
+from datetime import datetime
 
 
 USER_AGENT = [{'User-Agent':'Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.6) Gecko/20091201 Firefox/3.5.6'},\
@@ -25,9 +27,8 @@ class HTMLDownloader(object):
             return None
     
         user_agent = USER_AGENT[randrange(0, len(USER_AGENT))]
-        # headers = {}.update(user_agent)
-        time.sleep(5)
-        se = requests.Session()
+        time.sleep(randrange(5, 20))
+        se = requests.Session()    # 使用Session， 防止redirect
         se.headers.update(user_agent)
         response = se.get(url)
         #response = requests.get(url, headers=headers)
@@ -36,4 +37,5 @@ class HTMLDownloader(object):
             response.encoding = 'utf-8'
             return response.text
     
+        print('warnning...., can not reach page..', response.status_code)
         return None

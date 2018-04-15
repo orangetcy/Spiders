@@ -11,6 +11,9 @@ class UrlManager(object):
     def __init__(self):
         self.new_urls = set()    # 未爬取的URL集合
         self.old_urls = set()    # 已爬取的URL集合
+        self.new_urls_store_path = 'new_urls.txt'
+        self.old_urls_store_path = 'old_urls.txt'
+        self.load_process()
 
     def has_new_url(self):
         """判断是否还有未爬取的URL
@@ -72,17 +75,26 @@ class UrlManager(object):
         with open(path, 'wb') as fp:
             pickle.dump(data, fp)
 
-    def load_process(self, path):
+    def load_process(self):
         """从本地文件加载进度
-        :param path: 文件路径
         :return: 返回set集合
         """
-        print('[+] 从文件加载进度： %s' % path)
+        print('[+] 从文件加载未爬取进度： %s' % self.new_urls_store_path)
         try:
-            with open(path, 'rb') as fp:
-                data = pickle.load(fp)
-                return data
+            with open(self.new_urls_store_path, 'rb') as nfp:
+                new_urls = pickle.load(nfp)
+                self.add_new_urls(new_urls)
         except Exception as e:
-            print('[+] 无进度文件， 请创建： %s' % path)
+            print('[+] 无进度文件， 请创建： %s' % self.new_urls_store_path)
 
-        return set()
+        print('[+] 从文件加载已爬取进度： %s' % self.old_urls_store_path)
+        try:
+            with open(self.old_urls_store_path, 'rb') as ofp:
+                old_urls = pickle.load(ofp)
+                for url_md5 in old_urls:
+                    self.old_urls.add(url_md5)
+        except Exception as e:
+            print('[+] 无进度文件， 请创建： %s' % self.old_urls_store_path)
+
+        
+        
