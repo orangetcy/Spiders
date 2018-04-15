@@ -28,9 +28,15 @@ class HTMLParser(object):
         # 抽取数据
         new_data['url'] = page_url
         title = soup.find('dd', class_="lemmaWgt-lemmaTitle-title").find('h1')
-        new_data['title'] = title.get_text()
+        if title is None:
+           new_data['title'] = 'null' 
+        else:
+           new_data['title'] = title.get_text()
         summary = soup.find('div', class_="lemma-summary")
-        new_data['summary'] = summary.get_text()
+        if summary is None:
+            new_data['summary'] = 'null'
+        else:
+            new_data['summary'] = summary.get_text()
 
         print('new_urls:', new_urls)
         print('new_data', new_data)

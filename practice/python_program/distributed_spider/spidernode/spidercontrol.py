@@ -66,6 +66,8 @@ class SpiderWorker(object):
             except Exception as e:
                 print(e)
                 print('爬取失败！')
+                # 通知其他节点停止工作
+                self.result.put({'new_urls':'end', 'data':'end'})
                 return
             print('sleep... task size:',self.task.qsize())
             time.sleep(10)
