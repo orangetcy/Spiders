@@ -26,7 +26,7 @@ class diskcache(object):
      ...
     KeyError: 'http://example.webscraping.com has expired'
     >>> cache.get(url, -1)
-    -1
+    -"""  """1
     >>> cache.clear()
     """
 
