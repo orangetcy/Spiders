@@ -5,6 +5,7 @@ import random
 import re
 import time
 from datetime import datetime
+from pprint import pprint
 
 import pudb
 from selenium import webdriver
@@ -146,13 +147,17 @@ class Downloader(object):
         # 编剧
         writers = info.find_elements_by_xpath(
             './span[2]/span[@class="attrs"]/a')
-        for item in writers:
-            movie['writer'].update({item.text: item.get_attribute('href')})
+        movie['writer'].update({
+            item.text: item.get_attribute('href')
+            for item in writers if item.text != ''
+        })
         # 演员
         actors = info.find_elements_by_xpath(
             './span[@class="actor"]/span[@class="attrs"]/span/a')
-        for item in actors:
-            movie['actor'].update({item.text: item.get_attribute('href')})
+        movie['actor'].update({
+            item.text: item.get_attribute('href')
+            for item in actors if item.text != ''
+        })
         # 类型
         mtypes = info.find_elements_by_xpath('./span[@property="v:genre"]')
         movie['type'].extend([item.text for item in mtypes])
@@ -242,13 +247,13 @@ class Downloader(object):
                 'link':
                 title_info.get_attribute('href')
             })
-        print(movie)
-        print(reviews)
+        pprint(movie)
+        pprint(reviews)
 
 
 if __name__ == '__main__':
     t = Downloader()
     # t.get_movies()
     url = 'https://movie.douban.com/subject/1849031/' \
-        +'?tag=%E8%B1%86%E7%93%A3%E9%AB%98%E5%88%86'
+        + '?tag=%E8%B1%86%E7%93%A3%E9%AB%98%E5%88%86'
     t.get_movie_detail(url)
