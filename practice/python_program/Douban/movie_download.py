@@ -6,6 +6,7 @@ import re
 import time
 from datetime import datetime
 from pprint import pprint
+import hashlib
 
 import pudb
 from selenium import webdriver
@@ -13,6 +14,9 @@ from selenium.webdriver.chrome.options import Options
 
 DEFAULT_DELAY = 5  # from douban robots
 RANDOM_DELAY = [random.random() * i for i in range(3, 6)]
+DEFAULT_ERRORS = 3
+
+FLAG_HEADLESS = True
 
 
 def headless_driver(flag=True):
@@ -35,9 +39,10 @@ def headless_driver(flag=True):
 
 
 class Downloader(object):
-    def __init__(self):
+    def __init__(self, sql_q=None, max_num=20):
         self.root_url = 'https://movie.douban.com/explore#!type=movie&tag=豆瓣高分'
-        pass
+        self.sql_q = sql_q
+        self.max_num = max_num
 
     def get_headless_driver(self, headless=True):
         if headless:
@@ -55,14 +60,13 @@ class Downloader(object):
         except Exception as e:
             pass
 
-    @headless_driver(flag=False)
-    def get_movies(self, driver=None):
-        info = dict(
-            name='null',
-            score='null',
-            link='null',
-        )
+    def hash_link(self, link):
+        t = hashlib.md5()
+        t.update(link.encode('utf-8'))
+        return t.hexdigest()
 
+    @headless_driver(flag=FLAG_HEADLESS)
+    def get_movies(self, driver=None):
         driver.get(self.root_url)
         load_more = driver.find_element_by_xpath('//a[@class="more"]')
         count_movies = 0
@@ -73,21 +77,31 @@ class Downloader(object):
                 infos = driver.find_elements_by_xpath(
                     '//div[@class="list"]/a[@class="item"]')
                 for item in infos[count_movies:]:
-                    info['name'], info['score'] = item.text.split(' ')
+                    info = {}
+                    score = re.findall(
+                        '\d{1,3}\.\d{1,3}', item.text)[0]
+                    info['score'] = score
+                    info['name'] = item.text.replace(score, '').strip()
                     info['link'] = item.get_attribute('href')
-                    print(info)
+                    # print(info)
+                    self.sql_q.put(info)
                 count_movies = len(infos)
             except Exception as e:
                 count_exception += 1
                 print('get movie info error: ', e.args)
-            if count_movies >= 40 or count_exception >= 3:
+            if count_movies >= self.max_num or count_exception >= DEFAULT_ERRORS:
+                print('电影概览抓取完毕, 通知其它模块结束工作!')
+                """
+                for i in range(0, self.thread_count):
+                    self.sql_q.put('end')"""
+                self.sql_q.put('end')
                 return
             time.sleep(DEFAULT_DELAY)
 
-    @headless_driver(flag=False)
+    @headless_driver(flag=FLAG_HEADLESS)
     def get_movie_detail(self, url=None, driver=None):
-        if driver is None or url is None:
-            return
+        if (not driver) or (not url):
+            return None, None
         # 数据结构
         # 电影基本信息
         movie = dict(
@@ -203,7 +217,7 @@ class Downloader(object):
         rates = driver.find_elements_by_xpath(
             '//div[@class="ratings-on-weight"]/div/span[@class="rating_per"]')
         rate_per = [item.text for item in rates]
-        rate_int = [i for i in range(5, 0, -1)]
+        rate_int = [str(i) for i in range(5, 0, -1)]
         reviews['status'].update(dict(zip(rate_int, rate_per)))
 
         # 热门短评
@@ -217,9 +231,9 @@ class Downloader(object):
         short_list = short.find_elements_by_class_name('comment')
         for item in short_list:
             author = item.find_element_by_xpath('./h3/span[2]/a')
-            user = author.text
+            user = author.text.replace('.', ' ')
             link = author.get_attribute('href')
-            user_link = user + '_' + link
+            user_link = user + '_' + self.hash_link(link)
             context = item.find_element_by_xpath('./p').text
             reviews['hot_short'].update({user_link: context})
         # 热门影评
@@ -235,9 +249,9 @@ class Downloader(object):
         for item in film_reviews:
             # 影评人信息及主页链接
             author = item.find_element_by_xpath('./header/a[2]')
-            user = author.text
+            user = author.text.replace('.', '')
             link = author.get_attribute('href')
-            user_link = user + '_' + link
+            user_link = user + '_' + self.hash_link(link)
             reviews['hot_film_reviews'].update({user_link: dict()})
             # 影评信息
             title_info = item.find_element_by_xpath('./div/h2/a')
@@ -247,13 +261,19 @@ class Downloader(object):
                 'link':
                 title_info.get_attribute('href')
             })
-        pprint(movie)
-        pprint(reviews)
+        # pprint(movie)
+        # pprint(reviews)
+        return movie, reviews
 
 
 if __name__ == '__main__':
-    t = Downloader()
-    # t.get_movies()
-    url = 'https://movie.douban.com/subject/1849031/' \
-        + '?tag=%E8%B1%86%E7%93%A3%E9%AB%98%E5%88%86'
-    t.get_movie_detail(url)
+    import queue
+    url_q = queue.Queue()
+    t = Downloader(url_q, max_num=200)
+    t.get_movies()
+    '''
+    while not url_q.empty():
+        print(url_q.get())
+    #url = 'https://movie.douban.com/subject/1849031/' \
+    #    + '?tag=%E8%B1%86%E7%93%A3%E9%AB%98%E5%88%86'
+'''
